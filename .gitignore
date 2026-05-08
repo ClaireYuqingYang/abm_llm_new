@@ -1,0 +1,28 @@
+# ── Secrets ────────────────────────────────────
+.env
+
+# ── Data (participant data must not be committed) ──
+data/raw/
+data/agents.csv
+data/perceptions.csv
+# huggingface arrow caches in archive/ (hundreds of MB each — exceeds GitHub limit)
+archive/data/raw/
+archive/data/agents.csv
+archive/data/perceptions.csv
+archive/data/openai_usage_log.csv
+
+# ── Outputs (generated charts) ──────────────────
+outputs/
+
+# ── Python cache ────────────────────────────────
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ── Jupyter ─────────────────────────────────────
+.ipynb_checkpoints/
+.jupyter/
+
+# ── macOS ───────────────────────────────────────
+.DS_Store

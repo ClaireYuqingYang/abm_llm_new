@@ -1,0 +1,16 @@
+# ── Core (always required) ────────────────────────────────────────────────────
+numpy>=1.24
+pandas>=2.0
+matplotlib>=3.7
+seaborn>=0.12
+
+# ── Real data download (Mode B / C in config.py) ──────────────────────────────
+datasets>=2.14          # HuggingFace datasets
+pyarrow>=12.0           # parquet read/write
+
+# ── Real LLM perception ───────────────────────────────────────────────────────
+anthropic>=0.25        # PERCEPTION_MODE = "anthropic"
+openai>=1.30           # PERCEPTION_MODE = "openai"  (gpt-4o-mini ~$0.44 for full dataset)
+
+# ── Environment variable loading ──────────────────────────────────────────────
+python-dotenv>=1.0
