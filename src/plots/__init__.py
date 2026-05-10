@@ -14,6 +14,7 @@ from .counterfactual import (
     counterfactual_stability_box,
     counterfactual_stability_summary_bars,
 )
+from .heavytail import cascade_ccdf_loglog, tail_summary_bars
 from .style import VARIANT_COLORS, VARIANT_LABELS
 
 __all__ = [
@@ -23,6 +24,8 @@ __all__ = [
     "alignment_summary_chart",
     "counterfactual_stability_box",
     "counterfactual_stability_summary_bars",
+    "cascade_ccdf_loglog",
+    "tail_summary_bars",
     "VARIANT_COLORS",
     "VARIANT_LABELS",
 ]

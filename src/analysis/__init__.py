@@ -7,5 +7,7 @@ These modules contain *only* numbers + dataframes.  Plotting lives in
 from . import benchmarks
 from . import alignment
 from . import counterfactual
+from . import heavytail
+from . import stats
 
-__all__ = ["benchmarks", "alignment", "counterfactual"]
+__all__ = ["benchmarks", "alignment", "counterfactual", "heavytail", "stats"]
