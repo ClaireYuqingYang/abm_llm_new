@@ -1,0 +1,7 @@
+task,model,mae,within_one
+Valence,LLM digital twin,1.1666666666666667,0.6666666666666666
+Valence,Population mean,1.0799999999999998,
+Arousal,LLM digital twin,0.8333333333333334,0.8333333333333334
+Arousal,Population mean,1.2433333333333327,
+Interest,LLM digital twin,0.95,0.85
+Interest,Population mean,0.8,

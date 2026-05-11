@@ -11,6 +11,11 @@ archive/data/agents.csv
 archive/data/perceptions.csv
 archive/data/openai_usage_log.csv
 
+# Local HuggingFace/Arrow copies of the public digital-twin datasets.
+# These are too large for GitHub; processed samples and results are committed.
+raw/
+twin_2k_500_mega_study/
+
 # ── Outputs (generated charts) ──────────────────
 outputs/
 
