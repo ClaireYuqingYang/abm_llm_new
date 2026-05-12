@@ -15,45 +15,62 @@ from .style import VARIANT_COLORS, VARIANT_LABELS, VARIANT_ORDER
 def counterfactual_stability_box(
     long: pd.DataFrame, save: bool = True, fname: str = "cf_stability_box.png",
 ) -> str:
-    """Box plot of paired CF deltas (delta_fake_reach) by (variant, cf).
+    """Mean paired CF deltas with uncertainty and repeat-level dots.
 
-    Narrower and more centred boxes mean the CF is more identifiable
-    under that paradigm.
+    The digital-twin run is small and discrete, so a box plot collapses many
+    conditions into a flat line at zero.  A mean-dot plot makes the signal and
+    the all-zero pure-LLM response easier to read.
     """
     cfs = list(long["cf"].drop_duplicates())
     variants = [v for v in VARIANT_ORDER if v in long["variant"].unique()]
 
-    fig, axes = plt.subplots(
-        1, len(cfs), figsize=(4.0 * len(cfs), 4.5), sharey=True,
-    )
-    if len(cfs) == 1:
-        axes = [axes]
+    fig, ax = plt.subplots(figsize=(10.5, 5.2))
+    x = np.arange(len(cfs))
+    offsets = np.linspace(-0.24, 0.24, len(variants))
+    rng = np.random.default_rng(8)
 
-    for ax, cf in zip(axes, cfs):
-        data = [
-            long[(long["variant"] == v) & (long["cf"] == cf)]["delta_fake_reach"].to_numpy()
-            for v in variants
-        ]
-        bp = ax.boxplot(
-            data, tick_labels=[VARIANT_LABELS[v] for v in variants],
-            patch_artist=True, widths=0.55, showfliers=True,
+    for offset, variant in zip(offsets, variants):
+        means, errs = [], []
+        for cf in cfs:
+            vals = long[
+                (long["variant"] == variant) & (long["cf"] == cf)
+            ]["delta_fake_reach"].to_numpy()
+            means.append(float(vals.mean()))
+            if len(vals) > 1:
+                errs.append(float(1.96 * vals.std(ddof=1) / np.sqrt(len(vals))))
+            else:
+                errs.append(0.0)
+            jitter = rng.normal(0, 0.012, size=len(vals))
+            ax.scatter(
+                np.full(len(vals), x[len(means) - 1] + offset) + jitter,
+                vals,
+                s=18,
+                color=VARIANT_COLORS[variant],
+                alpha=0.28,
+                linewidth=0,
+            )
+        ax.errorbar(
+            x + offset,
+            means,
+            yerr=errs,
+            fmt="o",
+            markersize=7,
+            capsize=4,
+            linewidth=1.5,
+            color=VARIANT_COLORS[variant],
+            label=VARIANT_LABELS[variant],
         )
-        for patch, v in zip(bp["boxes"], variants):
-            patch.set_facecolor(VARIANT_COLORS[v])
-            patch.set_alpha(0.55)
-            patch.set_edgecolor("black")
-        for med in bp["medians"]:
-            med.set_color("black")
-        ax.axhline(0, color="gray", linewidth=0.8, linestyle="--")
-        ax.set_title(cf, fontsize=10)
-        ax.tick_params(axis="x", labelrotation=20, labelsize=8)
-        ax.grid(axis="y", alpha=0.3)
 
-    axes[0].set_ylabel("Δ fake_reach  (CF − baseline)")
-    fig.suptitle(
-        "Counterfactual stability: paired Δ fake_reach across repeats\n"
-        "(tight box centred away from zero = identifiable CF)"
+    ax.axhline(0, color="gray", linewidth=0.9, linestyle="--")
+    ax.set_xticks(x)
+    ax.set_xticklabels(cfs, rotation=16, ha="right", fontsize=9)
+    ax.set_ylabel("Mean Δ fake reach  (counterfactual − baseline)")
+    ax.set_title(
+        "Counterfactual response with real Twin-2K persona backbone\n"
+        "Dots are paired repeats; intervals show approximate 95% CI"
     )
+    ax.grid(axis="y", alpha=0.28)
+    ax.legend(frameon=False, ncol=3, loc="lower left")
     fig.tight_layout()
 
     out = os.path.join(config.OUTPUT_DIR, fname)
