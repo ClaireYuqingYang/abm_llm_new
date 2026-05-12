@@ -52,6 +52,7 @@ class StabilityConfig:
     n_steps: int = 25
     n_reps: int = 20
     policy: str = "none"
+    agent_source: str = "synthetic"
     variants: tuple[str, ...] = dv.VARIANTS
     cfs: dict[str, dict] = field(default_factory=lambda: dict(DEFAULT_CFS))
 
@@ -65,7 +66,10 @@ def run_stability(cfg: StabilityConfig | None = None) -> pd.DataFrame:
     Returns long-form DataFrame with one row per (variant, cf, rep)."""
     cfg = cfg or StabilityConfig()
     vcfg = dv.VariantConfig(
-        n_agents=cfg.n_agents, n_steps=cfg.n_steps, n_repeats=cfg.n_reps,
+        n_agents=cfg.n_agents,
+        n_steps=cfg.n_steps,
+        n_repeats=cfg.n_reps,
+        agent_source=cfg.agent_source,
     )
 
     # Baselines per variant

@@ -45,13 +45,17 @@ def main(
     n_agents: int = 200,
     n_steps: int = 25,
     n_repeats: int = 5,
+    agent_source: str = "synthetic",
     variants: list[str] | None = None,
     policies: list[str] | None = None,
     make_plots: bool = True,
 ) -> dict:
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
     cfg = diffusion_variants.VariantConfig(
-        n_agents=n_agents, n_steps=n_steps, n_repeats=n_repeats,
+        n_agents=n_agents,
+        n_steps=n_steps,
+        n_repeats=n_repeats,
+        agent_source=agent_source,
     )
     variants = variants or list(diffusion_variants.VARIANTS)
     policies = policies or config.INTERVENTION_POLICIES
@@ -62,6 +66,7 @@ def main(
     print(f" Variants:  {', '.join(variants)}")
     print(f" Policies:  {', '.join(policies)}")
     print(f" Scale:     {n_agents} agents × {n_steps} steps × {n_repeats} repeats")
+    print(f" Agents:    {agent_source}")
     print(f" LLM mode:  {config.PERCEPTION_MODE} (model={config.OPENAI_MODEL})")
     print()
 
@@ -126,6 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_agents", type=int, default=200)
     parser.add_argument("--n_steps", type=int, default=25)
     parser.add_argument("--n_repeats", type=int, default=5)
+    parser.add_argument("--agent_source", choices=["synthetic", "digital_twin"], default="synthetic")
     parser.add_argument("--variants", nargs="+", default=None)
     parser.add_argument("--policies", nargs="+", default=None)
     parser.add_argument("--no_plots", action="store_true")
@@ -134,6 +140,7 @@ if __name__ == "__main__":
         n_agents=args.n_agents,
         n_steps=args.n_steps,
         n_repeats=args.n_repeats,
+        agent_source=args.agent_source,
         variants=args.variants,
         policies=args.policies,
         make_plots=not args.no_plots,

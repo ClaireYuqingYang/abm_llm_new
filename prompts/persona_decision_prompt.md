@@ -1,6 +1,6 @@
 # Persona Decision Prompt
 
-This prompt was used to generate the `pure_llm` behavior profiles cached in `data/llm_persona_decisions.csv`. For each simulated persona and story, OpenAI `gpt-4.1-nano` returned a holistic behavioral profile. The final op-ed argues that this fully cached behavior profile is less useful for policy counterfactuals than the hybrid perception-layer approach.
+This prompt was used to generate the `pure_llm` behavior profiles cached in `data/llm_persona_decisions.csv`. In the final run, `{persona_text}` included a real Twin-2K participant summary plus the numeric simulation traits derived from that summary. For each persona and story, OpenAI `gpt-4.1-nano` returned a holistic behavioral profile. The final op-ed argues that this fully cached behavior profile is less useful for policy counterfactuals than the hybrid perception-layer approach.
 
 ```text
 System message:

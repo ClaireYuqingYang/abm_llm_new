@@ -1,6 +1,6 @@
 # Hybrid Perception Prompt
 
-This prompt was used to generate the `abm_llm` perception scores cached in `data/hybrid_perception.csv`. For each simulated persona and story, OpenAI `gpt-4.1-nano` returned `importance`, `emotional_intensity`, and `relevance` on a 0 to 1 scale. Those scores were then used as inputs to the ABM sharing and belief-update rules.
+This prompt was used to generate the `abm_llm` perception scores cached in `data/hybrid_perception.csv`. In the final run, `{persona_text}` included a real Twin-2K participant summary plus the numeric simulation traits derived from that summary. For each persona and story, OpenAI `gpt-4.1-nano` returned `importance`, `emotional_intensity`, and `relevance` on a 0 to 1 scale. Those scores were then used as inputs to the ABM sharing and belief-update rules.
 
 ```text
 System message:

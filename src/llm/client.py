@@ -81,7 +81,7 @@ def persona_text(agent: pd.Series) -> str:
         ide = "conservative-leaning"
     else:
         ide = "centrist"
-    return (
+    trait_overlay = (
         f"- Political leaning: {ide} (ideology={ideology:+.2f}).\n"
         f"- Media literacy: {lvl(agent['media_literacy'])}.\n"
         f"- Trust in platforms / institutions: {lvl(agent['platform_trust'])}.\n"
@@ -89,6 +89,14 @@ def persona_text(agent: pd.Series) -> str:
         f"- Confirmation bias: {lvl(agent['confirmation_bias'])}.\n"
         f"- General skepticism toward online claims: {lvl(agent['skepticism'])}.\n"
     )
+    if "persona_summary" in agent.index and isinstance(agent["persona_summary"], str):
+        return (
+            "Real Twin-2K participant summary:\n"
+            f"{agent['persona_summary'][:2800]}\n\n"
+            "Simulation trait overlay derived from that summary:\n"
+            f"{trait_overlay}"
+        )
+    return trait_overlay
 
 
 def llm_hybrid_perception(client, agent: pd.Series, spec: dict) -> dict:

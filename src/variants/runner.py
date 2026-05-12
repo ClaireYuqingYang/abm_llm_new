@@ -14,7 +14,11 @@ import numpy as np
 import pandas as pd
 
 from .. import config
-from ..simulation.agents import generate_agents, build_social_network
+from ..simulation.agents import (
+    generate_agents,
+    generate_digital_twin_agents,
+    build_social_network,
+)
 from ..simulation.content import Content, POLICIES, Policy
 from ..simulation.dynamics import snapshot
 from .. import llm as llm_personas
@@ -35,6 +39,7 @@ class VariantConfig:
     n_agents: int = 200
     n_steps: int = 25
     n_repeats: int = 5
+    agent_source: str = "synthetic"
 
 
 def default_variant_config() -> VariantConfig:
@@ -71,7 +76,12 @@ def run_variant_experiment(
         for repeat in range(cfg.n_repeats):
             seed = config.RANDOM_SEED + repeat * 997 + hash(policy_key) % 7919
             rng = np.random.default_rng(int(abs(seed)) % (2**32))
-            agents = generate_agents(cfg.n_agents, rng)
+            if cfg.agent_source == "digital_twin":
+                agents = generate_digital_twin_agents(cfg.n_agents, rng)
+            elif cfg.agent_source == "synthetic":
+                agents = generate_agents(cfg.n_agents, rng)
+            else:
+                raise ValueError(f"Unknown agent source: {cfg.agent_source}")
             agents = apply_agent_cf(agents, cf_overrides)
             neighbors = build_social_network(agents, rng)
 

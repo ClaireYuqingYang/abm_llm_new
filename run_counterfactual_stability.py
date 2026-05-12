@@ -36,6 +36,7 @@ def main(
     n_steps: int = 20,
     n_reps: int = 10,
     policy: str = "none",
+    agent_source: str = "synthetic",
     variants: list[str] | None = None,
     make_plots: bool = True,
 ) -> dict:
@@ -45,6 +46,7 @@ def main(
         n_steps=n_steps,
         n_reps=n_reps,
         policy=policy,
+        agent_source=agent_source,
         variants=tuple(variants) if variants else cs.dv.VARIANTS,
     )
 
@@ -55,6 +57,7 @@ def main(
     print(f" CFs:      {', '.join(cfg.cfs.keys())}")
     print(f" Scale:    {n_agents} agents × {n_steps} steps × {n_reps} reps × {len(cfg.cfs)} CFs")
     print(f" Policy:   {policy}")
+    print(f" Agents:   {agent_source}")
     print(f" LLM mode: {config.PERCEPTION_MODE} (model={config.OPENAI_MODEL})")
     print()
 
@@ -87,6 +90,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_steps", type=int, default=20)
     parser.add_argument("--n_reps", type=int, default=10)
     parser.add_argument("--policy", default="none")
+    parser.add_argument("--agent_source", choices=["synthetic", "digital_twin"], default="synthetic")
     parser.add_argument("--variants", nargs="+", default=None)
     parser.add_argument("--no_plots", action="store_true")
     args = parser.parse_args()
@@ -95,6 +99,7 @@ if __name__ == "__main__":
         n_steps=args.n_steps,
         n_reps=args.n_reps,
         policy=args.policy,
+        agent_source=args.agent_source,
         variants=args.variants,
         make_plots=not args.no_plots,
     )

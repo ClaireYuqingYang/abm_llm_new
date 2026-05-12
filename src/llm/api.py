@@ -62,6 +62,7 @@ def _generate(
     """Generate LLM outputs for each (pid, story) pair, falling back to mock."""
     api_key = os.getenv("OPENAI_API_KEY", "")
     use_real = bool(api_key) and config.PERCEPTION_MODE != "mock"
+    strict_llm = os.getenv("STRICT_LLM", "0") == "1"
     client = None
     if use_real:
         try:
@@ -74,7 +75,8 @@ def _generate(
 
     rng = np.random.default_rng(config.RANDOM_SEED + 7)
     rows = []
-    agent_lookup = agents.set_index("pid")
+    pid_col = "cache_pid" if "cache_pid" in agents.columns else "pid"
+    agent_lookup = agents.set_index(pid_col)
     for pid, story in pairs:
         agent = agent_lookup.loc[int(pid)]
         spec = STORY_SPECS[story]
@@ -85,9 +87,13 @@ def _generate(
                 else:
                     rec = llm_client.llm_persona_decisions(client, agent, spec)
             except Exception as exc:  # pragma: no cover
+                if strict_llm:
+                    raise
                 print(f"[llm.api] call failed ({exc}); falling back to mock.")
                 rec = mock_for(mode, agent, spec, rng)
         else:
+            if strict_llm:
+                raise RuntimeError("STRICT_LLM=1 but no OpenAI client is available.")
             rec = mock_for(mode, agent, spec, rng)
         rec.update({"pid": int(pid), "story": story})
         rows.append(rec)

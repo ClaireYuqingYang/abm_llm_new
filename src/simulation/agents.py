@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.ipc as ipc
 
 from .. import config
 
@@ -49,6 +54,123 @@ def generate_agents(n: int, rng: np.random.Generator) -> pd.DataFrame:
             "skepticism": skepticism,
         }
     )
+
+
+FULL_PERSONA_DIR = (
+    Path(config.ROOT_DIR)
+    / "raw/full_persona/0.0.0/f883165a3026fde855dfd448e0cd16443ab257b6"
+)
+
+
+def _iter_arrow_rows(path: Path):
+    with pa.memory_map(str(path), "r") as source:
+        reader = ipc.open_stream(source)
+        for batch in reader:
+            yield from batch.to_pylist()
+
+
+def _field(text: str, label: str) -> str:
+    match = re.search(rf"{re.escape(label)}: ([^\\n]+?)(?= [A-Z][A-Za-z ]+:|$)", text)
+    return match.group(1).strip() if match else ""
+
+
+def _score(text: str, name: str, default: float = 3.0) -> float:
+    match = re.search(rf"{re.escape(name)}\s*=\s*([0-9.]+)", text)
+    if not match:
+        return default
+    return float(match.group(1))
+
+
+def _education_level(value: str) -> int:
+    value = value.lower()
+    if "less than" in value or "some high school" in value:
+        return 1
+    if "high school" in value:
+        return 2
+    if "some college" in value or "associate" in value:
+        return 3
+    if "college graduate" in value or "bachelor" in value:
+        return 4
+    if "postgrad" in value or "graduate degree" in value:
+        return 5
+    return 3
+
+
+def _ideology(value: str, affiliation: str) -> float:
+    text = f"{value} {affiliation}".lower()
+    if "very liberal" in text:
+        return -0.85
+    if "liberal" in text or "democrat" in text:
+        return -0.55
+    if "very conservative" in text:
+        return 0.85
+    if "conservative" in text or "republican" in text:
+        return 0.55
+    return 0.0
+
+
+def _clip01(value: float) -> float:
+    return float(np.clip(value, 0.0, 1.0))
+
+
+def generate_digital_twin_agents(n: int, rng: np.random.Generator) -> pd.DataFrame:
+    """Create ABM agents from real Twin-2K persona summaries.
+
+    The raw survey files stay local.  We map survey-backed demographics and
+    personality text into the numeric traits required by the diffusion model,
+    while preserving the original persona summary for LLM prompts.
+    """
+    if not FULL_PERSONA_DIR.exists():
+        raise FileNotFoundError(
+            f"Digital-twin raw personas not found at {FULL_PERSONA_DIR}"
+        )
+
+    rows = []
+    for path in sorted(FULL_PERSONA_DIR.glob("*.arrow")):
+        for row in _iter_arrow_rows(path):
+            text = row["persona_summary"]
+            source_pid = int(row["pid"])
+            education = _education_level(_field(text, "Education level"))
+            ideology = _ideology(
+                _field(text, "Political views"),
+                _field(text, "Political affiliation"),
+            )
+            openness = _score(text, "score_openness") / 5
+            conscientiousness = _score(text, "wave1_score_conscientiousness") / 5
+            neuroticism = _score(text, "score_neuroticism") / 5
+            agreeableness = _score(text, "score_agreeableness") / 5
+            extraversion = _score(text, "score_extraversion") / 5
+
+            media_literacy = _clip01(0.25 + 0.11 * education + 0.18 * openness)
+            platform_trust = _clip01(0.55 - 0.18 * abs(ideology) + 0.10 * agreeableness)
+            impulsivity = _clip01(0.72 - 0.50 * conscientiousness + 0.18 * neuroticism)
+            activity = float(np.clip(0.65 + 0.9 * extraversion, 0.25, 2.5))
+            confirmation_bias = _clip01(0.24 + 0.47 * abs(ideology) + 0.12 * neuroticism)
+            skepticism = _clip01(0.20 + 0.58 * media_literacy - 0.20 * platform_trust)
+
+            rows.append(
+                {
+                    "pid": len(rows),
+                    # Offset cache keys so LLM outputs cannot collide with
+                    # earlier synthetic-agent cache rows.
+                    "cache_pid": 100000 + source_pid,
+                    "source_pid": source_pid,
+                    "ideology": ideology,
+                    "education": education,
+                    "need_for_cognition": float((openness - 0.5) * 2.5),
+                    "media_literacy": media_literacy,
+                    "platform_trust": platform_trust,
+                    "impulsivity": impulsivity,
+                    "activity": activity,
+                    "confirmation_bias": confirmation_bias,
+                    "skepticism": skepticism,
+                    "persona_summary": text,
+                }
+            )
+
+    agents = pd.DataFrame(rows).sort_values("source_pid").head(n).reset_index(drop=True)
+    agents["pid"] = np.arange(len(agents))
+    return agents
 
 
 def build_social_network(
