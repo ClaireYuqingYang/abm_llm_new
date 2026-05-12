@@ -145,6 +145,8 @@ def run_openai_predictions(df: pd.DataFrame, personas: dict[str, dict], limit: i
     pred_path = DATA_DIR / "digital_twin_story_predictions.csv"
     if pred_path.exists() and not refresh:
         existing = pd.read_csv(pred_path)
+        if "pid" in existing.columns:
+            existing["pid"] = existing["pid"].astype(str)
     else:
         existing = pd.DataFrame()
 
@@ -181,6 +183,7 @@ def run_openai_predictions(df: pd.DataFrame, personas: dict[str, dict], limit: i
         print(f"predicted pid={row['pid']}")
 
     combined = pd.concat([existing, pd.DataFrame(new_rows)], ignore_index=True)
+    combined["pid"] = combined["pid"].astype(str)
     combined = combined.drop_duplicates("pid", keep="first").head(limit)
     combined.to_csv(pred_path, index=False)
     return combined
@@ -225,24 +228,89 @@ def make_validation_chart(merged: pd.DataFrame) -> pd.DataFrame:
     metrics_df = pd.DataFrame(metrics)
     metrics_df.to_csv(DATA_DIR / "digital_twin_validation_metrics.csv", index=False)
 
-    fig, ax = plt.subplots(figsize=(8.5, 5.2))
     tasks = [s[0] for s in specs]
-    x = np.arange(len(tasks))
-    width = 0.34
     twin = metrics_df[metrics_df["model"] == "LLM digital twin"]["mae"].to_numpy()
     pop = metrics_df[metrics_df["model"] == "Population mean"]["mae"].to_numpy()
-    ax.bar(x - width / 2, twin, width, label="LLM digital twin", color="#2ca02c")
-    ax.bar(x + width / 2, pop, width, label="Population mean baseline", color="#7f7f7f")
-    ax.set_xticks(x)
-    ax.set_xticklabels(tasks)
-    ax.set_ylabel("Mean absolute error")
-    ax.set_title("Digital-twin personas predict held-out story-belief responses")
-    ax.legend(frameon=False)
+
+    fig, ax = plt.subplots(figsize=(9.2, 5.4))
+    y = np.arange(len(tasks))[::-1]
+    twin_color = "#168a5a"
+    baseline_color = "#9aa0a6"
+    line_color = "#d7dce0"
+
+    for yi, llm_value, baseline_value in zip(y, twin, pop):
+        ax.plot(
+            [llm_value, baseline_value],
+            [yi, yi],
+            color=line_color,
+            linewidth=9,
+            solid_capstyle="round",
+            zorder=1,
+        )
+    ax.scatter(pop, y, s=150, color=baseline_color, label="Population mean", zorder=3)
+    ax.scatter(
+        twin,
+        y,
+        s=190,
+        color=twin_color,
+        edgecolor="white",
+        linewidth=1.8,
+        label="LLM digital twin",
+        zorder=4,
+    )
+
+    for yi, task, llm_value, baseline_value in zip(y, tasks, twin, pop):
+        ax.text(-0.06, yi, task, ha="right", va="center", fontsize=12, fontweight="bold")
+        ax.text(
+            llm_value,
+            yi + 0.18,
+            f"{llm_value:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+            color=twin_color,
+            fontweight="bold",
+        )
+        ax.text(
+            baseline_value,
+            yi - 0.18,
+            f"{baseline_value:.2f}",
+            ha="center",
+            va="top",
+            fontsize=10,
+            color="#666",
+        )
+
+    ax.annotate(
+        "LLM captures arousal best",
+        xy=(twin[1], y[1]),
+        xytext=(0.18, y[1] - 0.62),
+        arrowprops=dict(arrowstyle="->", color=twin_color, lw=1.2),
+        color=twin_color,
+        fontsize=11,
+        fontweight="bold",
+    )
+    ax.set_xlim(0, max(pop.max(), twin.max()) + 0.35)
+    ax.set_ylim(-0.8, len(tasks) - 0.2)
+    ax.set_yticks([])
+    ax.set_xlabel("Mean absolute error  (lower is better)")
+    ax.set_title(
+        "Digital-twin personas recover affective intensity",
+        fontsize=15,
+        fontweight="bold",
+        pad=16,
+    )
+    ax.text(
+        0,
+        len(tasks) - 0.45,
+        "60 Twin-2K participants, GPT-4.1-nano predictions vs. simple population-mean baseline",
+        fontsize=10,
+        color="#555",
+    )
+    ax.legend(frameon=False, loc="lower right")
+    ax.grid(axis="x", alpha=0.22)
     ax.spines[["top", "right"]].set_visible(False)
-    for i, value in enumerate(twin):
-        ax.text(i - width / 2, value + 0.03, f"{value:.2f}", ha="center", va="bottom", fontsize=9)
-    for i, value in enumerate(pop):
-        ax.text(i + width / 2, value + 0.03, f"{value:.2f}", ha="center", va="bottom", fontsize=9)
+    ax.spines["left"].set_visible(False)
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "digital_twin_validation.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
